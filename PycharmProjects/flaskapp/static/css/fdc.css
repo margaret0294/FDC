@@ -1,0 +1,13 @@
+h1.logo {
+  font-size: 36px;
+  font-weight: bold;
+  color: #fff;
+  padding: 4px;
+  background-color: #66BB6A;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #1B5E20;
+}
+
+textarea {
+   width: 100%;
+}

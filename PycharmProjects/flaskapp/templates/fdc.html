@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+      <title>A web demo for Fix-point Dependency Context</title>
+
+      <link href="{{bootstrapCSS}}" rel="stylesheet" />
+      <link href="{{fdcCSS}}" rel="stylesheet"/>
+
+      <script src="{{url_for('static',filename='js/d3.js')}}"></script>
+      <script src="{{display}}"></script>
+
+      <style type="text/css">
+path.link {
+  fill: none;
+  stroke: #666;
+  stroke-width: 1.5px;
+}
+
+marker#licensing {
+  fill: green;
+}
+
+path.link.licensing {
+  stroke: green;
+}
+
+path.link.resolved {
+  stroke-dasharray: 0,2 1;
+}
+
+circle {
+  fill: #ccc;
+  stroke: #333;
+  stroke-width: 1.5px;
+}
+
+text {
+  font: 10px sans-serif;
+  pointer-events: none;
+}
+
+text.shadow {
+  stroke: #fff;
+  stroke-width: 3px;
+  stroke-opacity: .8;
+}
+}
+
+</style>
+  </head>
+
+<body>
+  <div class="container no-padding">
+      <h1 class="logo">Fix-point Dependency Context Visualization</h1>
+      <h2> </h2>
+      <div class="row">
+          <form action="/fdc" method="post">
+              <div class="col-sm-8 no-padding">
+                  <textarea name="text" rows="4" cols="60">{{text}}</textarea>
+              </div>
+
+              <div class="col-sm-2">
+                  <div class="row">
+                      <p>Format:<select name="format">
+                          <option value="json">Json</option>
+                          <option value="conll">Conll</option>
+                      </select> </p>
+                  </div>
+
+                  <div class="row">
+                      <button class="btn btn-success" id="submit">Parsing</button>
+                  </div>
+              </div>
+          </form>
+      </div>
+
+      <h3>Dependency Parsing Result:</h3>
+
+          <div class="row" >
+              <div class="col-sm-6 no-padding">
+                  <div class="panel panel-default">
+                      <div class="panel-heading">Dependency Context</div>
+                      <div class="panel-body">
+                          <div id="dc">{{content}}</div>
+                      </div>
+                  </div>
+              </div>
+
+              <div class="col-sm-6 no-padding">
+                  <div class="panel panel-default">
+                      <div class="panel-heading">Fix-point Dependency Context</div>
+                      <div class="panel-body">
+                          <div id="fdc">{{fixcontent}}</div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+
+      <h3>Visualization:</h3>
+
+
+
+      <div class="row">
+          <div class="col-sm-6 no-padding">
+                  <div class="panel panel-default">
+                      <div class="panel-heading">Dependency Context Graph</div>
+                      <div class="panel-body">
+                          <div id="dcg">
+                              <button class="btn btn-success" id="btn-Visualization" onclick="location.href='/DCG'">Visualize</button>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
+              <div class="col-sm-6 no-padding">
+                  <div class="panel panel-default">
+                      <div class="panel-heading">Fix-point Dependency Context Graph</div>
+                      <div class="panel-body">
+                          <div id="fdcg">
+                              <button class="btn btn-success" id="btn-Visualization" onclick="location.href='/FDCG'">Visualize</button>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+      </div>
+
+
+
+
+
+
+  </div>
+</body>
+</html>
