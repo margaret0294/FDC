@@ -4,6 +4,7 @@ from flask import request, redirect,url_for
 import parse
 import json
 
+
 app = Flask(__name__)
 
 @app.route('/')
@@ -26,20 +27,12 @@ def fdc():
         session['text'] = text
         session['format'] = form
 
-        if form == "json":
-            content = parse.get_dependency(text,"json")
-            fixcontent = parse.fdc(content,"json")
-        else:
-            word = parse.get_dependency(text, "conll")
-            word = word.split()
+        content = parse.get_dependency(text)
+        fixcontent = parse.fdc(content)
 
-            for i in range(0, len(word), 11):  # the parsing result for a word is in one element
-                words.append(word[i:i + 11])
-            del words[0]  # delete empty element
-
-            content = words
-            fixcontent = parse.fdc(words,"conll")
-            fixcontent = fixcontent[0][0]
+        if form == "conll":
+            content = parse.changetoconll(content)
+            fixcontent = parse.changetoconll(fixcontent)
 
         session['content'] = content
         session['fixcontent'] = fixcontent
@@ -48,18 +41,16 @@ def fdc():
 
 @app.route('/DCG', methods=['GET','POST'])
 def visualizeDCG():
+
     form = session['format']
     content = session['content']
 
-    if form == "json":
-        content = json.loads(content)
-    else:
-        content = parse.changetojson(content)
-        content = json.loads(content)
+    if form =='conll':
+        content = parse.changetoconll(content)
 
     link = parse.visualize_data(content)
 
-    return render_template('index.html',links = json.dumps(link))
+    return render_template('visualize.html',links = json.dumps(link))
 
 @app.route('/FDCG', methods=['GET', 'POST'])
 def visualizeFDCG():
@@ -72,7 +63,7 @@ def visualizeFDCG():
 
     link = parse.visualize_data(fixcontent)
 
-    return render_template('index.html', links=json.dumps(link))
+    return render_template('visualize.html', links=json.dumps(link))
 
 app.secret_key = '\xb7\xe4\xc1W6wg\t\xc4\x05\xb3\xedd\xc8\x86%\xfev\x82\x95\xfd+\x1f\xe7'
 
