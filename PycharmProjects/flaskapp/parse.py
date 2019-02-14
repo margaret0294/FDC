@@ -6,7 +6,7 @@ import json
 import base64
 import hashlib
 
-#定义虚词的pos
+#define functional word pos tags
 func_words = ['c',  #连词
               'e',  #惊叹词
               'g',  #语素
@@ -137,14 +137,14 @@ def fdc(data):
     for i in range(len(data)):
 
         element = data[i]['pos']
-        if element in func_words:  # 根据pos删除虚词
+        if element in func_words:  # delete functional word
             for j in range(len(data)):
                 if data[j]['parent'] == data[i]['id']:
                     data[j]['parent'] = data[i]['parent']
         else:
             fdc_data.append(data[i])
 
-    # 更新编号
+    # renumber
     for i in range(len(fdc_data)):
         if fdc_data[i]['id'] != i:
             for j in range(len(fdc_data)):
