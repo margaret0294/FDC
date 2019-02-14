@@ -1,8 +1,10 @@
 # -*- coding:utf8 -*-
 import urllib.request
 import urllib.parse
-from urllib.parse import quote
+import time
 import json
+import base64
+import hashlib
 
 #定义虚词的pos
 func_words = ['c',  #连词
@@ -21,111 +23,156 @@ func_words = ['c',  #连词
               ]
 
 #dependency parsing from LTP Cloud server
-def get_dependency(text, textformat):
-    url_get_base = "http://api.ltp-cloud.com/analysis/"
+def get_dependency(text):
+    body = urllib.parse.urlencode({'text': text}).encode('utf-8')
 
-    args = {
-        'api_key': '61Y2D2r7g93Z8PxmzNpL5HQTPysLJCSNSC9hcznI',
-        'text': quote(text),
-        'pattern': 'dp',
-        'format': textformat
-    }
+    url = 'http://ltpapi.xfyun.cn/v1/dp'
+    api_key = 'API KEY'
+    param = {"type": "dependent"}
 
-    args = urllib.parse.urlencode(args).encode('utf-8')
-    req = urllib.request.Request(url_get_base)
-    result = urllib.request.urlopen(req, data=args)  # POST method
-    content = result.read()
+    x_appid = '5c3bbb85'
+    x_param = base64.b64encode(json.dumps(param).replace(' ', '').encode('utf-8'))
+    x_time = int(int(round(time.time() * 1000)) / 1000)
+    x_checksum = hashlib.md5(api_key.encode('utf-8') + str(x_time).encode('utf-8') + x_param).hexdigest()
+    x_header = {'X-Appid': x_appid,
+                'X-CurTime': x_time,
+                'X-Param': x_param,
+                'X-CheckSum': x_checksum}
+    req = urllib.request.Request(url, body, x_header)
+    result = urllib.request.urlopen(req)
+    result = result.read()
+    data = json.loads(result.decode('utf-8'))
+    #print(data)
+    dp_result = data['data']['dp']
+    words = get_segment(text)
+    pos = get_pos(text)
 
-    return content.decode()
+    #add id, word, pos tag
+    for i in range(len(words)):
+        dp_result[i]['pos'] = pos[i]
+        dp_result[i]['cont'] = words[i]
+        dp_result[i]['id'] = i
 
-#change format from conll to json
-def changetojson(conlltext):
-    data = conlltext
-    list = {}
-    text = []
-    result = [[[]]]
+   # print(dp_result)
+
+    return dp_result
+
+def get_pos(text):
+    body = urllib.parse.urlencode({'text': text}).encode('utf-8')
+
+    url = 'http://ltpapi.xfyun.cn/v1/pos'
+    api_key = '30faed8d05958ecf8ec12faf5b680f73'
+    param = {"type": "dependent"}
+
+    x_appid = '5c3bbb85'
+    x_param = base64.b64encode(json.dumps(param).replace(' ', '').encode('utf-8'))
+    x_time = int(int(round(time.time() * 1000)) / 1000)
+    x_checksum = hashlib.md5(api_key.encode('utf-8') + str(x_time).encode('utf-8') + x_param).hexdigest()
+    x_header = {'X-Appid': x_appid,
+                'X-CurTime': x_time,
+                'X-Param': x_param,
+                'X-CheckSum': x_checksum}
+    req = urllib.request.Request(url, body, x_header)
+    result = urllib.request.urlopen(req)
+    result = result.read()
+
+    data = json.loads(result.decode('utf-8'))
+    pos = data['data']['pos']
+
+    return pos
+
+def get_segment(text):
+    body = urllib.parse.urlencode({'text': text}).encode('utf-8')
+
+    url = 'http://ltpapi.xfyun.cn/v1/cws'
+    api_key = '30faed8d05958ecf8ec12faf5b680f73'
+    param = {"type": "dependent"}
+
+    x_appid = '5c3bbb85'
+    x_param = base64.b64encode(json.dumps(param).replace(' ', '').encode('utf-8'))
+    x_time = int(int(round(time.time() * 1000)) / 1000)
+    x_checksum = hashlib.md5(api_key.encode('utf-8') + str(x_time).encode('utf-8') + x_param).hexdigest()
+    x_header = {'X-Appid': x_appid,
+                'X-CurTime': x_time,
+                'X-Param': x_param,
+                'X-CheckSum': x_checksum}
+    req = urllib.request.Request(url, body, x_header)
+    result = urllib.request.urlopen(req)
+    result = result.read()
+
+    data = json.loads(result.decode('utf-8'))
+    words = data['data']['word']
+
+    return words
+
+#change format from json to conll
+def changetoconll(data):
+    list = [0] * 10
+    sentence = []
 
     for i in range(0, len(data)):
         temp = data[i]
 
-        list["id"] = temp[0]
-        list["cont"] = temp[1]
-        list["pos"] = temp[4]
-        list["parent"] = temp[6]
-        list["relate"] = temp[7]
-        text.append(list.copy())
+        list[0] = int(temp['id'] + 1)
+        list[1] = temp['cont']
+        list[2] = '_'
+        list[3] = temp['pos']
+        list[4] = temp['pos']
+        list[5] = '_'
+        list[6] = int(temp['parent'] + 1)
+        list[7] = temp['relate']
+        list[8] = '_'
+        list[9] = '_'
+        sentence.append(list.copy())
 
-    result[0][0]=text
-    result = json.dumps(result,ensure_ascii=False)
-
-    return result
+    return sentence
 
 #Fix-point dependency parsing
 #delete functional words
-def fdc(text, textformat):
-    fdc_data = [[[]]]
+#text type is list of dict [{}]
+def fdc(data):
     func_index = []
+    fdc_data = []
 
-    if textformat == "conll":
-        words = list(text)
+    for i in range(len(data)):
 
-        for i in range(len(words)):
-            if words[i][4] in func_words:  # pos位置
-                func_index.append(i)  # 记录虚词在原句中的位置
-                parent = words[i][6]  # parent node编号
-                for j in range(len(words)):
-                    if words[j][6] == words[i][0]:  # 是否有子节点
-                        words[j][6] = parent
-        # 删除虚词
-        func_index.reverse()
-        for i in range(len(func_index)):
-            words.pop(func_index[i])
+        element = data[i]['pos']
+        if element in func_words:  # 根据pos删除虚词
+            for j in range(len(data)):
+                if data[j]['parent'] == data[i]['id']:
+                    data[j]['parent'] = data[i]['parent']
+        else:
+            fdc_data.append(data[i])
 
-        fdc_data[0][0] = words
-
-    else:
-        data = json.loads(text)
-        data = data[0][0]
-
-        for i in range(len(data)):
-            element = data[i]["pos"]
-            if element in func_words:  #根据pos删除虚词
-                for j in range(len(data)):
-                    if data[j]["parent"] == data[i]["id"]:
-                        data[j]["parent"] = data[i]["parent"]
-            else:
-                func_index.append(i)
-
-        for i in range(len(data)):
-            if i in func_index:
-                fdc_data[0][0].append(data[i])
+    # 更新编号
+    for i in range(len(fdc_data)):
+        if fdc_data[i]['id'] != i:
+            for j in range(len(fdc_data)):
+                if fdc_data[j]['parent'] == fdc_data[i]['id']:
+                    fdc_data[j]['parent'] = i
+            fdc_data[i]['id'] = i
 
     return fdc_data
 
 # change json data that can be used in d3
 def visualize_data(text):
-    # data = json.loads(text)
-    data = text[0][0]
+
+    data = text
     extract_data = []
     node = {}
 
+
     for i in range(len(data)):
-        node["target"] = data[i]["cont"]
+        node["target"] = str(data[i]["id"])+", "+data[i]["cont"]+", "+data[i]["pos"]
         parent = data[i]["parent"]
         if parent == '-1':
             parent = data[i]["id"]
         for j in range(len(data)):
             if data[j]["id"] == parent:
-                node["source"] = data[j]["cont"]
+                node["source"] = str(data[j]["id"])+", "+data[j]["cont"]+", "+data[j]["pos"]
         node["type"] = "suit"
         extract_data.append(node.copy())
 
+
     return extract_data
 
-#
-# content = '''[[['0', '他', '_', '_', 'r', '_', '3', 'SBV', '_', '_', '_'], ['1', '把', '_', '_', 'p', '_', '3', 'ADV', '_', '_', '_'], ['2', '苹果', '_', '_', 'n', '_', '1', 'POB', '_', '_', '_'], ['3', '吃', '_', '_', 'v', '_', '-1', 'HED', '_', '_', '_'], ['4', '了', '_', '_', 'u', '_', '3', 'RAD', '_', '_', '_'], ['5', '。', '_', '_', 'wp', '_', '3', 'WP', '_', '_', '_']]]'''
-# print(fdc(content,"conll"))
-# text = changetojson(content)
-# # # text = '''[ [ [ { "id": 0, "cont": "他", "pos": "r", "parent": 3, "relate": "SBV" }, { "id": 1, "cont": "把", "pos": "p", "parent": 3, "relate": "ADV" }, { "id": 2, "cont": "苹果", "pos": "n", "parent": 1, "relate": "POB" }, { "id": 3, "cont": "吃", "pos": "v", "parent": -1, "relate": "HED" }, { "id": 4, "cont": "了", "pos": "u", "parent": 3, "relate": "RAD" }, { "id": 5, "cont": "。", "pos": "wp", "parent": 3, "relate": "WP" } ] ] ]'''
-# print(text)
-# print(visualize_data(text))
